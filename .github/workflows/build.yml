@@ -1,4 +1,3 @@
-
 name: Build HeartMonitor
 
 on:
@@ -17,4 +16,11 @@ jobs:
         uses: geode-sdk/build-geode-mod@main
         with:
           target: Android64
-          
+          sdk: latest
+
+      - name: Upload compiled mod
+        uses: actions/upload-artifact@v4
+        with:
+          name: HeartMonitor-Android
+          path: '**/*.geode'
+          if-no-files-found: error
