@@ -1,0 +1,12 @@
+
+{
+  "geode": "v5.10.1",
+  "gd": {
+    "android": "*"
+  },
+  "id": "midibiwogiorguna.heartmonitor",
+  "name": "HeartMonitor",
+  "version": "v1.0.0",
+  "developer": "midibiwogiorguna",
+  "description": "A heart rate monitor HUD for Geometry Dash."
+}
