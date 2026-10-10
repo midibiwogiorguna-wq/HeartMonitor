@@ -10,6 +10,7 @@ using namespace geode::prelude;
 class $modify(HeartMonitorPlayLayer, PlayLayer) {
     struct Fields {
         CCLabelBMFont* bpmLabel = nullptr;
+        CCLabelBMFont* bpmUnitLabel = nullptr;
         CCNode* heart = nullptr;
         float elapsed = 0.f;
         float beatPhase = 0.f;
@@ -182,14 +183,32 @@ class $modify(HeartMonitorPlayLayer, PlayLayer) {
             }
         }
 
-        auto label = CCLabelBMFont::create("72 BPM", "bigFont.fnt");
-        if (label) {
-            label->setScale(0.43f);
-            label->setColor(ccc3(0, 255, 80));
-            label->setAnchorPoint({0.f, 0.5f});
-            label->setPosition({41.f, panelHeight / 2.f});
-            panel->addChild(label, 10);
-            m_fields->bpmLabel = label;
+        const float numberScale = static_cast<float>(
+            Mod::get()->getSettingValue<double>("bpm-number-scale")
+        );
+        const float unitScale = static_cast<float>(
+            Mod::get()->getSettingValue<double>("bpm-unit-scale")
+        );
+
+        auto numberLabel = CCLabelBMFont::create("72", "bigFont.fnt");
+        auto unitLabel = CCLabelBMFont::create("BPM", "bigFont.fnt");
+        if (numberLabel && unitLabel) {
+            numberLabel->setScale(numberScale);
+            numberLabel->setColor(ccc3(0, 255, 80));
+            numberLabel->setAnchorPoint({0.f, 0.5f});
+            numberLabel->setPosition({41.f, panelHeight / 2.f});
+            panel->addChild(numberLabel, 10);
+            m_fields->bpmLabel = numberLabel;
+
+            unitLabel->setScale(unitScale);
+            unitLabel->setColor(ccc3(0, 255, 80));
+            unitLabel->setAnchorPoint({0.f, 0.5f});
+            unitLabel->setPosition({
+                41.f + numberLabel->getScaledContentSize().width + 4.f,
+                panelHeight / 2.f
+            });
+            panel->addChild(unitLabel, 10);
+            m_fields->bpmUnitLabel = unitLabel;
         }
 
         return true;
@@ -197,7 +216,7 @@ class $modify(HeartMonitorPlayLayer, PlayLayer) {
 
     void postUpdate(float dt) {
         PlayLayer::postUpdate(dt);
-        if (!m_fields->bpmLabel || !m_fields->heart) return;
+        if (!m_fields->bpmLabel || !m_fields->bpmUnitLabel || !m_fields->heart) return;
 
         m_fields->elapsed += dt;
         m_fields->beatPhase += dt;
@@ -227,14 +246,20 @@ class $modify(HeartMonitorPlayLayer, PlayLayer) {
 
         if (bpm != m_fields->lastBpm) {
             m_fields->lastBpm = bpm;
-            const std::string text = std::to_string(bpm) + " BPM";
+            const std::string text = std::to_string(bpm);
             m_fields->bpmLabel->setString(text.c_str());
+            m_fields->bpmUnitLabel->setPosition({
+                41.f + m_fields->bpmLabel->getScaledContentSize().width + 4.f,
+                20.f
+            });
         }
 
         const float t = std::clamp((bpm - 80.f) / 90.f, 0.f, 1.f);
         const GLubyte red = static_cast<GLubyte>(255.f * t);
         const GLubyte green = static_cast<GLubyte>(255.f * (1.f - t));
-        m_fields->bpmLabel->setColor(ccc3(red, green, 0));
+        const auto textColor = ccc3(red, green, 0);
+        m_fields->bpmLabel->setColor(textColor);
+        m_fields->bpmUnitLabel->setColor(textColor);
 
         const float rate = bpm / 60.f;
         const float beat = std::fmod(m_fields->beatPhase * rate, 1.f);
