@@ -58,6 +58,36 @@
         "arrow-step": 10,
         "input": true
       }
+    },
+    "bpm-number-scale": {
+      "name": "BPM number size",
+      "description": "Change the size of the changing heart-rate number. Changes apply when a level is entered again.",
+      "type": "float",
+      "default": 0.43,
+      "min": 0.2,
+      "max": 0.8,
+      "control": {
+        "slider": true,
+        "slider-step": 0.05,
+        "arrows": true,
+        "arrow-step": 0.05,
+        "input": true
+      }
+    },
+    "bpm-unit-scale": {
+      "name": "BPM text size",
+      "description": "Change the size of the BPM letters separately. Changes apply when a level is entered again.",
+      "type": "float",
+      "default": 0.32,
+      "min": 0.2,
+      "max": 0.8,
+      "control": {
+        "slider": true,
+        "slider-step": 0.05,
+        "arrows": true,
+        "arrow-step": 0.05,
+        "input": true
+      }
     }
   }
 }
