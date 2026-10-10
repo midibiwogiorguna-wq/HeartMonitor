@@ -102,7 +102,8 @@ class $modify(HeartMonitorPlayLayer, PlayLayer) {
                               1.6f, white);
         }
 
-        logo->setPosition({27.f, panelHeight - 1.f});
+        logo->setScale(0.72f);
+        logo->setPosition({22.f, panelHeight - 1.f});
         panel->addChild(logo, 20);
     }
 
@@ -116,10 +117,10 @@ class $modify(HeartMonitorPlayLayer, PlayLayer) {
         this->addChild(hud, 9999);
 
         // Compact pill panel, matching the reference graphic.
-        constexpr float panelWidth = 250.f;
-        constexpr float panelHeight = 70.f;
-        constexpr float panelRadius = 29.f;
-        constexpr float panelBorder = 2.5f;
+        constexpr float panelWidth = 205.f;
+        constexpr float panelHeight = 56.f;
+        constexpr float panelRadius = 24.f;
+        constexpr float panelBorder = 2.f;
         constexpr float rightMargin = 12.f;
         constexpr float topMargin = 12.f;
 
@@ -134,8 +135,8 @@ class $modify(HeartMonitorPlayLayer, PlayLayer) {
         addEcgLogo(panel, panelHeight);
 
         auto heart = CCNode::create();
-        m_fields->heartBaseY = 18.f;
-        heart->setPosition({23.f, m_fields->heartBaseY});
+        m_fields->heartBaseY = 14.f;
+        heart->setPosition({18.f, m_fields->heartBaseY});
         panel->addChild(heart, 10);
         m_fields->heart = heart;
 
@@ -153,11 +154,11 @@ class $modify(HeartMonitorPlayLayer, PlayLayer) {
             for (int col = 0; col < 8; col++) {
                 if (pixels[row][col] != '1') continue;
                 auto pixel = CCLayerColor::create(
-                    ccc4(255, 35, 55, 255), 4.8f, 4.8f
+                    ccc4(255, 35, 55, 255), 3.8f, 3.8f
                 );
                 if (!pixel) continue;
                 pixel->setPosition({
-                    col * 5.1f, (6 - row) * 5.1f
+                    col * 4.1f, (6 - row) * 4.1f
                 });
                 heart->addChild(pixel);
             }
@@ -165,10 +166,10 @@ class $modify(HeartMonitorPlayLayer, PlayLayer) {
 
         auto label = CCLabelBMFont::create("72 BPM", "bigFont.fnt");
         if (label) {
-            label->setScale(0.58f);
+            label->setScale(0.48f);
             label->setColor(ccc3(0, 255, 80));
             label->setAnchorPoint({0.f, 0.5f});
-            label->setPosition({83.f, panelHeight / 2.f});
+            label->setPosition({64.f, panelHeight / 2.f});
             panel->addChild(label, 10);
             m_fields->bpmLabel = label;
         }
@@ -234,7 +235,7 @@ class $modify(HeartMonitorPlayLayer, PlayLayer) {
 
         m_fields->heart->setScale(1.f + pulse * 0.14f);
         m_fields->heart->setPosition({
-            23.f, m_fields->heartBaseY + jump
+            18.f, m_fields->heartBaseY + jump
         });
     }
 };
