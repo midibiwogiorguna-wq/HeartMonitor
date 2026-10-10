@@ -1,6 +1,6 @@
 
 {
-  "geode": "v5.11.1",
+  "geode": "5.11.1",
   "gd": {
     "android": "*"
   },
@@ -8,5 +8,5 @@
   "name": "HeartMonitor",
   "version": "v1.0.0",
   "developer": "midibiwogiorguna",
-  "description": "A heart rate monitor HUD for Geometry Dash."
+  "description": "A pixel heart and simulated BPM counter for Geometry Dash."
 }
