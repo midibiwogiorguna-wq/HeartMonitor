@@ -125,9 +125,9 @@ class $modify(HeartMonitorPlayLayer, PlayLayer) {
         constexpr float topMargin = 12.f;
 
         auto panel = CCNode::create();
-        const float hudScale = Mod::get()->static_cast<float>(Mod::get()->getSettingValue<double>("hud-scale"));
-        const float offsetX = Mod::get()->static_cast<float>(Mod::get()->getSettingValue<double>("hud-offset-x"));
-        const float offsetY = Mod::get()->static_cast<float>(Mod::get()->getSettingValue<double>("hud-offset-y"));
+        const float hudScale = static_cast<float>(Mod::get()->getSettingValue<double>("hud-scale"));
+        const float offsetX = static_cast<float>(Mod::get()->getSettingValue<double>("hud-offset-x"));
+        const float offsetY = static_cast<float>(Mod::get()->getSettingValue<double>("hud-offset-y"));
         panel->setScale(hudScale);
         panel->setPosition({
             size.width - panelWidth - rightMargin + offsetX,
