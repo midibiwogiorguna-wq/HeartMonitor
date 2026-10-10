@@ -5,16 +5,23 @@ set(CMAKE_CXX_VISIBILITY_PRESET hidden)
 
 project(HeartMonitor VERSION 1.0.0)
 
-file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS src/*.cpp)
+file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS
+    src/*.cpp
+)
+
+if(NOT SOURCES)
+    message(FATAL_ERROR "No C++ source files found in src/")
+endif()
 
 add_library(${PROJECT_NAME} SHARED ${SOURCES})
 
-if (NOT DEFINED ENV{GEODE_SDK})
-    message(FATAL_ERROR "Unable to find Geode SDK! Please define GEODE_SDK environment variable to point to Geode")
-else()
-    message(STATUS "Found Geode: $ENV{GEODE_SDK}")
+if(NOT DEFINED ENV{GEODE_SDK})
+    message(FATAL_ERROR "Geode SDK not found")
 endif()
 
-add_subdirectory($ENV{GEODE_SDK} ${CMAKE_CURRENT_BINARY_DIR}/geode)
+add_subdirectory(
+    $ENV{GEODE_SDK}
+    ${CMAKE_CURRENT_BINARY_DIR}/geode
+)
 
 setup_geode_mod(${PROJECT_NAME})
