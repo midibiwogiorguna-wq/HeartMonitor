@@ -1,6 +1,6 @@
-
 #include <Geode/Geode.hpp>
 #include <Geode/modify/PlayLayer.hpp>
+
 #include <algorithm>
 #include <cmath>
 #include <string>
@@ -16,7 +16,71 @@ class $modify(HeartMonitorPlayLayer, PlayLayer) {
         float currentBpm = 72.f;
         float heartBaseY = 0.f;
         int lastBpm = -1;
+        int lastProgress = 0;
     };
+
+    static void addRect(CCNode* parent, float x, float y,
+                        float width, float height, ccColor4B color) {
+        auto rect = CCLayerColor::create(color, width, height);
+        if (!rect) return;
+
+        rect->setAnchorPoint({0.f, 0.f});
+        rect->setPosition({x, y});
+        parent->addChild(rect);
+    }
+
+    static float roundedHalfWidth(float width, float height,
+                                  float radius, float y) {
+        const float distance = std::fabs(y - height / 2.f);
+        const float straightHalfHeight = height / 2.f - radius;
+
+        if (distance <= straightHalfHeight)
+            return width / 2.f;
+
+        const float curveDistance = distance - straightHalfHeight;
+        const float inside = std::max(
+            0.f, radius * radius - curveDistance * curveDistance
+        );
+
+        return width / 2.f - radius + std::sqrt(inside);
+    }
+
+    static void addRoundedPanel(CCNode* parent, float width,
+                                float height, float radius,
+                                float border) {
+        // Draw a white rounded rectangle from thin horizontal strips.
+        constexpr float rowStep = 2.f;
+
+        for (float y = 0.f; y < height; y += rowStep) {
+            const float rowHeight = std::min(rowStep, height - y);
+            const float centerY = y + rowHeight / 2.f;
+            const float half = roundedHalfWidth(
+                width, height, radius, centerY
+            );
+
+            addRect(parent, width / 2.f - half, y,
+                    half * 2.f, rowHeight, ccc4(255, 255, 255, 255));
+        }
+
+        // Cover the center with black, leaving the white outline visible.
+        const float innerWidth = width - 2.f * border;
+        const float innerHeight = height - 2.f * border;
+        const float innerRadius = std::max(1.f, radius - border);
+
+        for (float y = border; y < height - border; y += rowStep) {
+            const float rowHeight = std::min(
+                rowStep, height - border - y
+            );
+            const float centerY = y + rowHeight / 2.f;
+            const float half = roundedHalfWidth(
+                innerWidth, innerHeight, innerRadius,
+                centerY - border
+            );
+
+            addRect(parent, width / 2.f - half, y,
+                    half * 2.f, rowHeight, ccc4(0, 0, 0, 235));
+        }
+    }
 
     bool init(GJGameLevel* level, bool useReplay,
               bool dontCreateObjects) {
@@ -24,15 +88,35 @@ class $modify(HeartMonitorPlayLayer, PlayLayer) {
             return false;
 
         auto size = CCDirector::sharedDirector()->getWinSize();
-
         auto hud = CCNode::create();
         this->addChild(hud, 9999);
 
+        // Compact black HUD with a white rounded outline.
+        constexpr float panelWidth = 280.f;
+        constexpr float panelHeight = 62.f;
+        constexpr float panelRadius = 25.f;
+        constexpr float panelBorder = 3.f;
+        constexpr float rightMargin = 12.f;
+        constexpr float topMargin = 12.f;
+
+        auto panel = CCNode::create();
+        panel->setPosition({
+            size.width - panelWidth - rightMargin,
+            size.height - panelHeight - topMargin
+        });
+        hud->addChild(panel);
+
+        addRoundedPanel(
+            panel, panelWidth, panelHeight, panelRadius, panelBorder
+        );
+
+        // Pixel heart. Its bottom position is chosen so its center lines up
+        // with the BPM text, and the animation moves it from this baseline.
         auto heart = CCNode::create();
-        heart->setPosition({size.width - 116.f, size.height - 35.f});
-        hud->addChild(heart);
+        m_fields->heartBaseY = 14.f;
+        heart->setPosition({20.f, m_fields->heartBaseY});
+        panel->addChild(heart, 10);
         m_fields->heart = heart;
-        m_fields->heartBaseY = size.height - 35.f;
 
         static constexpr const char* pixels[] = {
             "01100110",
@@ -44,9 +128,9 @@ class $modify(HeartMonitorPlayLayer, PlayLayer) {
             "00011000"
         };
 
-        for (int r = 0; r < 7; r++) {
-            for (int c = 0; c < 8; c++) {
-                if (pixels[r][c] != '1') continue;
+        for (int row = 0; row < 7; row++) {
+            for (int col = 0; col < 8; col++) {
+                if (pixels[row][col] != '1') continue;
 
                 auto pixel = CCLayerColor::create(
                     ccc4(255, 45, 65, 255), 4.f, 4.f
@@ -54,7 +138,7 @@ class $modify(HeartMonitorPlayLayer, PlayLayer) {
                 if (!pixel) continue;
 
                 pixel->setPosition({
-                    c * 4.5f, (6 - r) * 4.5f
+                    col * 4.5f, (6 - row) * 4.5f
                 });
                 heart->addChild(pixel);
             }
@@ -65,10 +149,8 @@ class $modify(HeartMonitorPlayLayer, PlayLayer) {
             label->setScale(0.45f);
             label->setColor(ccc3(0, 255, 80));
             label->setAnchorPoint({0.f, 0.5f});
-            label->setPosition({
-                size.width - 76.f, size.height - 35.f
-            });
-            hud->addChild(label);
+            label->setPosition({78.f, panelHeight / 2.f});
+            panel->addChild(label, 10);
             m_fields->bpmLabel = label;
         }
 
@@ -84,57 +166,66 @@ class $modify(HeartMonitorPlayLayer, PlayLayer) {
         m_fields->elapsed += dt;
         m_fields->beatPhase += dt;
 
-        int progress = std::clamp(
+        const int progress = std::clamp(
             static_cast<int>(getCurrentPercent()), 0, 100
         );
 
-        // Simulated BPM: varies continuously with progress.
-        float wave = std::sin(m_fields->elapsed * 2.2f) * 8.f;
+        // Simulated BPM varies smoothly instead of using fixed checkpoints.
+        // At 60%+ it stays around 140 or higher; near the end it rises again.
+        const float wave = std::sin(m_fields->elapsed * 2.2f) * 6.f;
         float target = 72.f + progress * 0.75f + wave;
 
         if (progress >= 60)
-            target = 140.f + (progress - 60) * 0.45f + wave;
+            target = 147.f + (progress - 60) * 0.4f + wave;
 
         if (progress >= 90)
-            target = 165.f + wave;
+            target = 166.f + wave;
 
-        // Ease toward the target instead of jumping between fixed values.
+        // Smoothly lower BPM when progress resets after a death/retry.
+        if (progress < m_fields->lastProgress) {
+            target = std::min(target, 78.f);
+        }
+        m_fields->lastProgress = progress;
+
         m_fields->currentBpm +=
             (target - m_fields->currentBpm) *
-            std::min(dt * 2.f, 1.f);
+            std::min(dt * 2.5f, 1.f);
 
-        int bpm = static_cast<int>(m_fields->currentBpm);
-        bpm = std::clamp(bpm, 60, 190);
+        const int bpm = std::clamp(
+            static_cast<int>(m_fields->currentBpm), 60, 190
+        );
 
         if (bpm != m_fields->lastBpm) {
             m_fields->lastBpm = bpm;
-            auto text = std::to_string(bpm) + " BPM";
+            const std::string text = std::to_string(bpm) + " BPM";
             m_fields->bpmLabel->setString(text.c_str());
         }
 
-        // Green at low BPM, yellow in the middle, red at high BPM.
-        float t = std::clamp((bpm - 70.f) / 110.f, 0.f, 1.f);
-        GLubyte red = static_cast<GLubyte>(255.f * t);
-        GLubyte green = static_cast<GLubyte>(
-            255.f * (1.f - t)
-        );
-        m_fields->bpmLabel->setColor(ccc3(red, green, 20));
+        // Green at low BPM, transitioning through yellow/orange to red.
+        const float t = std::clamp((bpm - 80.f) / 90.f, 0.f, 1.f);
+        const GLubyte red = static_cast<GLubyte>(255.f * t);
+        const GLubyte green = static_cast<GLubyte>(255.f * (1.f - t));
+        m_fields->bpmLabel->setColor(ccc3(red, green, 0));
 
-        // Two quick upward pulses per heartbeat, then settle back down.
-        float rate = bpm / 60.f;
-        float beat = std::fmod(m_fields->beatPhase * rate, 1.f);
+        // A quick main beat and a smaller second beat; faster BPM pulses faster.
+        const float rate = bpm / 60.f;
+        const float beat = std::fmod(m_fields->beatPhase * rate, 1.f);
         float jump = 0.f;
+        float pulse = 0.f;
 
-        if (beat < 0.18f)
-            jump = std::sin((beat / 0.18f) * 3.14159f) * 9.f;
-        else if (beat > 0.22f && beat < 0.36f)
-            jump = std::sin(
+        if (beat < 0.18f) {
+            pulse = std::sin((beat / 0.18f) * 3.14159f);
+            jump = pulse * 7.f;
+        } else if (beat > 0.22f && beat < 0.36f) {
+            pulse = std::sin(
                 ((beat - 0.22f) / 0.14f) * 3.14159f
-            ) * 5.f;
+            );
+            jump = pulse * 4.f;
+        }
 
+        m_fields->heart->setScale(1.f + pulse * 0.12f);
         m_fields->heart->setPosition({
-            m_fields->heart->getPositionX(),
-            m_fields->heartBaseY + jump
+            20.f, m_fields->heartBaseY + jump
         });
     }
 };
